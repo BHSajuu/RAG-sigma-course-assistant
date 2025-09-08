@@ -1,0 +1,14 @@
+# For the backend web server
+fastapi
+uvicorn
+python-dotenv
+jinja2
+
+# For data processing and AI
+requests
+google-cloud-speech
+google-cloud-storage
+google-cloud-translate
+yt-dlp
+chromadb
+pandas
