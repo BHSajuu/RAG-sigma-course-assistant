@@ -3,6 +3,7 @@ fastapi
 uvicorn
 python-dotenv
 jinja2
+google-generativeai
 
 # For data processing and AI
 requests
