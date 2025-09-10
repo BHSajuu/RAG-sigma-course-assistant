@@ -1,4 +1,14 @@
 .env
+
 credentials.json
+
 audio/
+
 fix_filenames.py
+
+inspect_db.py
+
+
+
+venv/
+__pycache__/
