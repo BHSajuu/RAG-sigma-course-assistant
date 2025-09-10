@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sigma Web Dev Course Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
-</head><body>
-    <div id="chat-container">
+</head>
+<body class="dark-theme"> <div id="chat-container">
         <div id="chat-header">
             <h2>Sigma Web Dev Course AI Assistant</h2>
+            <div id="theme-toggle">
+                <div class="toggle-icon"></div>
+            </div>
         </div>
         <div id="chat-messages">
             <div class="message bot-message">
@@ -18,7 +24,9 @@
         <div id="chat-input-container">
             <form id="chat-form">
                 <input type="text" id="chat-input" placeholder="Ask a question..." autocomplete="off" required>
-                <button type="submit">Send</button>
+                <button type="submit">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"></path></svg>
+                </button>
             </form>
         </div>
     </div>

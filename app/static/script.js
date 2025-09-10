@@ -2,6 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
+    const themeToggle = document.getElementById('theme-toggle');
+
+    // Theme switcher logic
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-theme');
+        document.body.classList.toggle('light-theme');
+    });
 
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -13,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = '';
 
         // Display a loading indicator for the bot's response
-        const loadingMessage = addMessage('Thinking...', 'bot', true);
+        const loadingMessage = addMessage('Thinking', 'bot', true);
 
         try {
             // Send the user's query to the backend API
