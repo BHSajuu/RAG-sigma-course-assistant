@@ -1,3 +1,4 @@
 .env
 credentials.json
 audio/
+fix_filenames.py
