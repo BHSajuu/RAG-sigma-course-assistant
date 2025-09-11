@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chat-messages');
     const themeToggle = document.getElementById('theme-toggle');
 
-    // Theme switcher logic
     themeToggle.addEventListener('click', () => {
         document.body.classList.toggle('dark-theme');
         document.body.classList.toggle('light-theme');
@@ -15,15 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = chatInput.value.trim();
         if (!query) return;
 
-        // Display user message in the chat
         addMessage(query, 'user');
         chatInput.value = '';
 
-        // Display a loading indicator for the bot's response
         const loadingMessage = addMessage('Thinking', 'bot', true);
 
         try {
-            // Send the user's query to the backend API
             const response = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -36,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // Remove the loading indicator and display the final bot response
             loadingMessage.remove();
             addMessage(data.answer, 'bot', false, data.source);
 
@@ -47,32 +42,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function addMessage(text, sender, isLoading = false, source = null) {
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', `${sender}-message`);
-        if (isLoading) {
-            messageDiv.classList.add('loading');
-        }
+    function addMessage(text, sender, isLoading = false, sources = []) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', `${sender}-message`);
+    if (isLoading) {
+        messageDiv.classList.add('loading');
+    }
 
-        const p = document.createElement('p');
-        p.textContent = text;
-        messageDiv.appendChild(p);
+    const p = document.createElement('p');
+    p.textContent = text;
+    messageDiv.appendChild(p);
 
-        // If the response includes a source, create a clickable link
-        if (source && source.url) {
-            const sourceDiv = document.createElement('div');
-            sourceDiv.classList.add('source-link');
+    if (sources && sources.length > 0) {
+        const sourceContainer = document.createElement('div');
+        sourceContainer.classList.add('source-link');
+        
+        const sourceHeader = document.createElement('strong');
+        sourceHeader.textContent = "Sources:";
+        sourceContainer.appendChild(sourceHeader);
+
+        sources.forEach(source => {
             const a = document.createElement('a');
             a.href = source.url;
-            a.target = '_blank'; // Open link in a new tab
-            a.textContent = `Source: ${source.title}`;
-            sourceDiv.appendChild(a);
-            messageDiv.appendChild(sourceDiv);
-        }
-
-        chatMessages.appendChild(messageDiv);
-        // Scroll to the bottom of the chat window
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        return messageDiv;
+            a.target = '_blank'; 
+            a.textContent = source.title;
+            sourceContainer.appendChild(document.createElement('br'));
+            sourceContainer.appendChild(a);
+        });
+        
+        messageDiv.appendChild(sourceContainer);
     }
+
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return messageDiv;
+}
 });
