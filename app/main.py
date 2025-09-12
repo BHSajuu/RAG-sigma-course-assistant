@@ -208,11 +208,12 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
                 Content: {doc}
                 ---\n"""
 
-                if video_url_with_timestamp not in unique_sources:
-                    unique_sources[video_url_with_timestamp] = {
-                        "title": metadata.get('video_title'),
-                        "url": video_url_with_timestamp
-                 }
+                if len(unique_sources) < 3:
+                    if video_url_with_timestamp not in unique_sources:
+                        unique_sources[video_url_with_timestamp] = {
+                            "title": metadata.get('video_title'),
+                            "url": video_url_with_timestamp
+                       }
         
         # Convert the dictionary of sources to a list
         sources_list = list(unique_sources.values())
@@ -246,7 +247,7 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
         print("Gemini response received.")
         return {
             "answer": answer.strip(),
-            "source": sources_list,
+            "sources": sources_list,
             "conversation_id": conversation_id
         } 
 
