@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import Message from './Message';
 import LoginModal from './LoginModal'; 
 import { FiSend, FiMenu } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,6 +11,7 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [user, setUser] = useState(null);
     const [showLoginModal, setShowLoginModal] = useState(false); 
     const messagesEndRef = useRef(null);
@@ -26,10 +28,11 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
     useEffect(() => {
         const fetchMessages = async () => {
             if (conversationId) {
-                setIsLoading(true);
+                setIsHistoryLoading(true); 
+                setMessages([]);
                 const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, { credentials: 'include' });
                 if (res.ok) setMessages(await res.json());
-                setIsLoading(false);
+                setIsHistoryLoading(false); 
             } else {
                 setMessages([]);
             }
@@ -75,6 +78,17 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
             setIsLoading(false);
         }
     };
+
+    const LoadingSpinner = () => (
+        <div className="flex items-center justify-center h-full">
+            <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 border-4 border-t-4 border-t-[#30C4E9] border-[#8B949E]/20 rounded-full" 
+            />
+        </div>
+    );
+
    return (
         <>
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
@@ -89,7 +103,9 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                 </header>
 
                 <div className="flex-grow p-6 md:p-10 overflow-y-auto">
-                    <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+                    {isHistoryLoading ? <LoadingSpinner /> 
+                      :
+                    (<div className="flex flex-col gap-4 max-w-4xl mx-auto">
                         {messages.length === 0 && !isLoading && (
                             <Message message={{
                                 role: 'bot',
@@ -104,6 +120,8 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                         )}
                         <div ref={messagesEndRef} />
                     </div>
+                    )}
+                    
                 </div>
 
                 <div className="p-4 md:p-8 border-t rounded-t-4xl border-[#8B949E]/20 bg-[#0D1117]">

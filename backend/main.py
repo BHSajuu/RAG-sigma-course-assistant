@@ -351,6 +351,13 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
         db.commit()
 
         print("Gemini response received.")
+        if answer.strip() == "I'm sorry, but I don't have enough information from the course videos to answer that question.":
+            return {
+            "answer": answer.strip(),
+            "sources": [],
+            "conversation_id": conversation_id
+        } 
+
         return {
             "answer": answer.strip(),
             "sources": sources_list,
