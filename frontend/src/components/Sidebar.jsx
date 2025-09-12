@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { FiPlus, FiTrash2, FiLogOut, FiLogIn, FiAlertTriangle } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export default function Sidebar({ onSelectConversation, activeConversationId, onNewChat }) {
+export default function Sidebar({ onSelectConversation, activeConversationId, onNewChat, refreshTrigger, isOpen, setIsOpen }) {
     const [user, setUser] = useState(null);
     const [conversations, setConversations] = useState([]);
     const [isClearing, setIsClearing] = useState(false);
@@ -27,10 +27,10 @@ export default function Sidebar({ onSelectConversation, activeConversationId, on
             console.error("Failed to fetch data:", error);
         }
     };
-
+    
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [refreshTrigger]);
 
     const handleDelete = async (convoId) => {
         try {
@@ -116,57 +116,74 @@ export default function Sidebar({ onSelectConversation, activeConversationId, on
     ), { duration: Infinity });
   };
 
-
-    return (
-        <div className="flex flex-col w-[340px] bg-[#010409] p-4 border-r border-[#8B949E]/20">
-            <button
-                onClick={onNewChat}
-                className="flex items-center gap-2 w-full p-3 border border-dashed border-[#30C4E9]/50 rounded-lg text-[#30C4E9] font-bold text-left hover:bg-[#30C4E9]/10 transition-colors mb-4"
-            >
-                <FiPlus /> New Chat
-            </button> 
-            <div className="flex-grow overflow-y-auto space-y-3 pr-2 pt-6 border-t border-[#283347]">
-                {conversations.map((convo, index) => (
+  return (
+        <>
+            <AnimatePresence>
+                {isOpen && (
                     <motion.div
-                        key={convo.id}
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`group flex items-center justify-between p-2.5 rounded-md cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis ${activeConversationId === convo.id ? 'bg-blue-300 text-[#0D1117] font-semibold' : 'hover:bg-blue-300/20'}`}
-                        onClick={() => onSelectConversation(convo.id)}
-                    >
-                        <span className="truncate">{convo.title}</span>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(convo.id); }}
-                            className="opacity-0 group-hover:opacity-100 text-[#8B949E] hover:text-red-500 transition-opacity ml-2"
-                        >
-                            <FiTrash2 />
-                        </button>
-                    </motion.div>
-                ))}
-            </div>
-            <div className="pt-4 border-t border-[#8B949E]/20">
-                {user ? (
-                    <>
-                        <div className="flex items-center gap-3 mb-3">
-                            <img src={user.picture} alt="User profile" className="w-8 h-8 rounded-full" />
-                            <span className="truncate">{user.name}</span>
-                        </div>
-                        {conversations.length > 0 && (
-                            <button onClick={handleClearAll} className="flex items-center gap-2 w-full p-3 rounded-lg text-sm text-[#8B949E] hover:bg-red-500/10 hover:text-red-500 transition-colors mb-2">
-                                <FiTrash2 /> Clear all conversations
-                            </button>
-                        )}
-                        <a href={`${API_BASE_URL}/logout`} className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-[#8B949E]/20 text-[#C9D1D9] font-bold hover:bg-[#8B949E]/40">
-                            <FiLogOut /> Logout
-                        </a>
-                    </>
-                ) : (
-                    <a href={`${API_BASE_URL}/login`} className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-[#30C4E9] text-[#0D1117] font-bold hover:opacity-90">
-                        <FiLogIn /> Login with Google
-                    </a>
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                        onClick={() => setIsOpen(false)}
+                    />
                 )}
-            </div>
-        </div>
+            </AnimatePresence>
+
+            <motion.div
+                className={`fixed top-0 left-0 h-full flex flex-col w-[280px] md:w-[360px] bg-[#010409] p-4 border-r border-[#8B949E]/20 z-40 md:relative md:translate-x-0 transition-transform duration-300 ease-in-out
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                `}
+            >
+                <button
+                    onClick={onNewChat}
+                    className="flex items-center gap-2 w-full p-3 border border-dashed border-slate-300 rounded-2xl text-[#7ea4eb] font-bold text-left hover:bg-slate-600/40 hover:border-double transition-colors mb-4"
+                >
+                    <FiPlus /> New Chat
+                </button>
+                <div className="flex-grow overflow-y-auto space-y-2 pr-2 pt-6 border-t border-[#283347]">
+                    {conversations.map((convo, index) => (
+                        <motion.div
+                            key={convo.id}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`group flex items-center justify-between p-2.5 rounded-2xl cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis ${activeConversationId === convo.id ? 'bg-blue-300 text-[#0D1117] font-semibold' : 'hover:bg-blue-300/20'}`}
+                            onClick={() => onSelectConversation(convo.id)}
+                        >
+                            <span className="truncate">{convo.title}</span>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(convo.id); }}
+                                className="opacity-0 group-hover:opacity-100 text-[#ee7512] hover:text-red-500 transition-opacity ml-2"
+                            >
+                                <FiTrash2 />
+                            </button>
+                        </motion.div>
+                    ))}
+                </div>
+                <div className="pt-4 border-t border-[#8B949E]/20">
+                    {user ? (
+                        <>
+                            <div className="flex items-center gap-3 mb-3 px-3 py-2">
+                                <img src={user.picture} alt="User profile" className="w-8 h-8 rounded-full" />
+                                <span className="truncate">{user.name}</span>
+                            </div>
+                            {conversations.length > 0 && (
+                                <button onClick={handleClearAll} className="flex items-center gap-2 w-full p-3 text-sm bg-slate-900 rounded-2xl text-[#8B949E] hover:bg-red-500/10 hover:text-red-500 transition-colors mb-2">
+                                    <FiTrash2 /> Clear all conversations
+                                </button>
+                            )}
+                            <a href={`${API_BASE_URL}/logout`} className="flex items-center justify-center gap-2 w-full p-3 rounded-2xl bg-[#8B949E]/20 text-[#C9D1D9] font-bold hover:bg-[#8B949E]/40">
+                                <FiLogOut /> Logout
+                            </a>
+                        </>
+                    ) : (
+                        <a href={`${API_BASE_URL}/login`} className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-[#30C4E9] text-[#0D1117] font-bold hover:opacity-90">
+                            <FiLogIn /> Login with Google
+                        </a>
+                    )}
+                </div>
+            </motion.div>
+        </>
     );
 }

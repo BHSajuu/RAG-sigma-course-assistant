@@ -2,11 +2,11 @@
 import { useEffect, useState, useRef } from 'react';
 import Message from './Message';
 import LoginModal from './LoginModal'; 
-import { FiSend } from 'react-icons/fi';
+import { FiSend, FiMenu } from 'react-icons/fi';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export default function ChatArea({ conversationId, onNewConversationStarted, onNewChatClick }) {
+export default function ChatArea({ conversationId, onNewConversationStarted, onNewChatClick , toggleSidebar}) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +17,8 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
     useEffect(() => {
         const fetchUser = async () => {
             const res = await fetch(`${API_BASE_URL}/api/me`, { credentials: 'include' });
-            if (res.ok) setUser(await res.json()); else setUser(null);
+            if (res.ok) setUser(await res.json()); 
+            else setUser(null);
         };
         fetchUser();
     }, []);
@@ -74,11 +75,19 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
             setIsLoading(false);
         }
     };
-
-    return (
+   return (
         <>
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
             <div className="flex-grow flex flex-col bg-[#161B22]">
+                <header className="flex items-center p-4 border-b border-[#8B949E]/20 md:hidden">
+                    <button onClick={toggleSidebar} className="text-[#C9D1D9] hover:text-[#30C4E9]">
+                        <FiMenu size={24} />
+                    </button>
+                    <h1 className="text-lg font-semibold text-center flex-grow">
+                        Sigma-course Assistant
+                    </h1>
+                </header>
+
                 <div className="flex-grow p-6 md:p-10 overflow-y-auto">
                     <div className="flex flex-col gap-4 max-w-4xl mx-auto">
                         {messages.length === 0 && !isLoading && (
@@ -86,7 +95,7 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                                 role: 'bot',
                                 content: user
                                     ? `Hello, ${user.name}! Ask me anything about the Sigma Web Development course.`
-                                    : 'Hello! Please log in to save your chat history. You can ask one question before logging in.'
+                                    : 'Hello! Ask me anything about the Sigma Web Development course. Please log in to save your chat history.'
                             }} />
                         )}
                         {messages.map((msg, index) => <Message key={index} message={msg} />)}
@@ -96,6 +105,7 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                         <div ref={messagesEndRef} />
                     </div>
                 </div>
+
                 <div className="p-4 md:p-8 border-t rounded-t-4xl border-[#8B949E]/20 bg-[#0D1117]">
                     <form onSubmit={handleSend} className="flex items-center p-1.5 border border-[#8B949E]/30 rounded-full px-8 bg-[#010409] max-w-4xl mx-auto">
                         <input

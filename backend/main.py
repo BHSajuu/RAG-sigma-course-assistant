@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware  
 import database
 from sqlalchemy import delete
-
+import re
 
 
 load_dotenv()
@@ -99,6 +99,21 @@ def create_embedding(text):
     except requests.exceptions.RequestException as e:
         print(f"Error calling embedding API: {e}")
         return None
+
+def normalize_text(s: str) -> str:
+    """Normalize text for comparison:
+       - ensure it's a string
+       - strip leading/trailing whitespace
+       - lowercase
+       - remove punctuation
+       - collapse multiple spaces
+    """
+    if s is None:
+        return ""
+    s = str(s)
+    s = re.sub(r"[^\w\s]", "", s, flags=re.UNICODE)
+    s = re.sub(r"\s+", " ", s).strip().lower()
+    return s
 
 @app.get("/api/me")
 async def read_user_me(request: Request):
@@ -215,6 +230,42 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
         if not query:
             return JSONResponse(status_code=400, content={"error": "Query not provided"})
         
+        general_questions = {
+            "who are you": "Hi, I am a virtual assistant designed to help students with their coursework in the Sigma Web Development course. If you have any questions about the course, like wanting to find where a particular topic is taught, I will try my best to find it for you. Thank You.",
+            "what can you do": "I can help you find specific topics within the Sigma Web Development course videos. Just ask me a question about a topic, and I'll try to point you to the right video and timestamp. I can also answer general questions about myself.",
+            "hello": "Hello there! How can I help you with the Sigma course today?",
+            "hi": "Hi! How can I help you with the Sigma course today?",
+            "thank you": "You're welcome! Let me know if you have any other questions."
+        }
+
+        modified_query = normalize_text(query)
+        if modified_query in general_questions:
+            answer = general_questions[modified_query]
+
+            conversation_id = data.get("conversation_id")
+            user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+
+            if not conversation_id:
+                title = query[:50] + "..." if len(query) > 50 else query
+                new_convo = database.Conversation(user_id=user.id, title=title)
+                db.add(new_convo)
+                db.commit()
+                db.refresh(new_convo)
+                conversation_id = new_convo.id
+            
+            user_message = database.Message(conversation_id=conversation_id, role="user", content=query)
+            bot_message = database.Message(conversation_id=conversation_id, role="bot", content=answer, sources=json.dumps([])) # Empty sources
+            db.add(user_message)
+            db.add(bot_message)
+            db.commit()
+            
+            return {
+                "answer": answer,
+                "sources": [], 
+                "conversation_id": conversation_id
+            }
+
+
         conversation_id = data.get("conversation_id")
 
         user = db.query(database.User).filter(database.User.email == user_info['email']).first()

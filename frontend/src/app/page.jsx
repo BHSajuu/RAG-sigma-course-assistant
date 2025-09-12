@@ -1,35 +1,50 @@
 "use client";
 
-import ChatArea from '@/components/ChatArea';
-import Sidebar from '@/components/Sidebar';
 import { useState } from 'react';
+import Sidebar from '@/components/Sidebar';
+import ChatArea from '@/components/ChatArea';
 
 export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
-  const [isSidebarLoading, setIsSidebarLoading] = useState(true);
+  const [refreshSidebar, setRefreshSidebar] = useState(0);
+  // State for mobile sidebar visibility
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleSelectConversation = (id) => {
     setCurrentConversationId(id);
+    setIsSidebarOpen(false); // Close sidebar on selection
   };
 
-  const handleNewConversation = () => {
+  const handleNewChat = () => {
     setCurrentConversationId(null);
-    setIsSidebarLoading(true);
-    setTimeout(() => setIsSidebarLoading(false), 50); 
+    setIsSidebarOpen(false); // Close sidebar on new chat
+  };
+
+  const triggerSidebarRefresh = () => {
+    setRefreshSidebar(prev => prev + 1);
   };
 
   return (
-    <main className="flex h-screen w-screen  bg-[#f0f4f9]">
+    // Add relative positioning for the overlay
+    <main className="relative flex h-screen w-screen bg-[#0D1117] overflow-hidden">
       <Sidebar
         onSelectConversation={handleSelectConversation}
         activeConversationId={currentConversationId}
-        isLoading={isSidebarLoading}
-        onNewChat={handleNewConversation}
+        onNewChat={handleNewChat}
+        refreshTrigger={refreshSidebar}
+        // Pass down sidebar state and setter
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
       <ChatArea
         conversationId={currentConversationId}
-        onNewConversationStarted={setCurrentConversationId}
-        onNewChatClick={handleNewConversation}
+        onNewConversationStarted={(id) => {
+            setCurrentConversationId(id);
+            triggerSidebarRefresh();
+        }}
+        onNewChatClick={handleNewChat}
+        // Pass down sidebar toggle function
+        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
     </main>
   );
