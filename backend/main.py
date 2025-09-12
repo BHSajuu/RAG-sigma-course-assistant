@@ -11,6 +11,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware  
 import database
+from sqlalchemy import delete
+
 
 
 load_dotenv()
@@ -154,6 +156,46 @@ async def get_conversation_messages(conversation_id: int, request: Request, db: 
     messages = db.query(database.Message).filter(database.Message.conversation_id == conversation_id).order_by(database.Message.id).all()
     return [{"role": m.role, "content": m.content, "sources": json.loads(m.sources) if m.sources else []} for m in messages]
 
+
+@app.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: int, request: Request, db: Session = Depends(get_db)):
+    user_info = request.session.get('user')
+    if not user_info:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+
+    user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+    if not user:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+
+    conversation = db.query(database.Conversation).filter(database.Conversation.id == conversation_id, database.Conversation.user_id == user.id).first()
+    if not conversation:
+        return JSONResponse(status_code=404, content={"error": "Conversation not found or access denied"})
+
+    db.query(database.Message).filter(database.Message.conversation_id == conversation_id).delete()
+    db.delete(conversation)
+    db.commit()
+
+    return JSONResponse(status_code=200, content={"message": "Conversation deleted successfully"})
+
+
+@app.delete("/conversations")
+async def delete_all_conversations(request: Request, db: Session = Depends(get_db)):
+    user_info = request.session.get('user')
+    if not user_info:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+
+    user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+    if not user:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+
+    conversation_ids = [c.id for c in db.query(database.Conversation).filter(database.Conversation.user_id == user.id).all()]
+
+    if conversation_ids:
+        db.query(database.Message).filter(database.Message.conversation_id.in_(conversation_ids)).delete(synchronize_session=False)
+        db.query(database.Conversation).filter(database.Conversation.user_id == user.id).delete(synchronize_session=False)
+        db.commit()
+
+    return JSONResponse(status_code=200, content={"message": "All conversations deleted successfully"})
 
 
 @app.post("/ask")

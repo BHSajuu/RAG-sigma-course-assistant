@@ -1,7 +1,8 @@
 "use client";
-
 import { useEffect, useState, useRef } from 'react';
 import Message from './Message';
+import LoginModal from './LoginModal'; 
+import { FiSend } from 'react-icons/fi';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,13 +11,13 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [user, setUser] = useState(null);
+    const [showLoginModal, setShowLoginModal] = useState(false); 
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
         const fetchUser = async () => {
             const res = await fetch(`${API_BASE_URL}/api/me`, { credentials: 'include' });
-            if (res.ok) setUser(await res.json());
-            else setUser(null);
+            if (res.ok) setUser(await res.json()); else setUser(null);
         };
         fetchUser();
     }, []);
@@ -26,28 +27,31 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
             if (conversationId) {
                 setIsLoading(true);
                 const res = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, { credentials: 'include' });
-                if (res.ok) {
-                    const data = await res.json();
-                    setMessages(data);
-                }
+                if (res.ok) setMessages(await res.json());
                 setIsLoading(false);
             } else {
-                setMessages([]); // Clear messages for a new chat
+                setMessages([]);
             }
         };
-        fetchMessages();
-    }, [conversationId]);
+        if (user) fetchMessages();
+    }, [conversationId, user]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const handleSend = async (e) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
 
+        if (!user) {
+            setShowLoginModal(true);
+            return;
+        }
+
         const userMessage = { role: 'user', content: input };
         setMessages(prev => [...prev, userMessage]);
+        const currentInput = input;
         setInput('');
         setIsLoading(true);
 
@@ -56,79 +60,62 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({
-                    query: input,
-                    conversation_id: conversationId
-                })
+                body: JSON.stringify({ query: currentInput, conversation_id: conversationId })
             });
-
             if (!res.ok) throw new Error("API response was not ok.");
-
             const data = await res.json();
             const botMessage = { role: 'bot', content: data.answer, sources: data.sources };
             setMessages(prev => [...prev, botMessage]);
-
-            // If this was a new conversation, update the parent state
-            if (!conversationId) {
-                onNewConversationStarted(data.conversation_id);
-            }
-
+            if (!conversationId) onNewConversationStarted(data.conversation_id);
         } catch (error) {
             const errorMessage = { role: 'bot', content: 'Sorry, something went wrong. Please try again.' };
             setMessages(prev => [...prev, errorMessage]);
-            console.error("Failed to send message:", error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const isInputDisabled = !user || isLoading;
-
     return (
-        <div className="flex-grow flex flex-col bg-white">
-            <div className="flex-grow p-10 overflow-y-auto">
-                <div className="flex flex-col gap-4">
-                    {messages.length === 0 && !isLoading && (
-                         <div className="p-4 rounded-2xl bg-gray-100 self-start max-w-[80%]">
-                            <p>
-                                {user 
-                                    ? `Hello, ${user.name}! Welcome back. Select a past conversation or start a new one.`
-                                    : 'Hello! Please log in to start a new conversation and save your history.'
-                                }
-                            </p>
-                        </div>
-                    )}
-                    {messages.map((msg, index) => (
-                        <Message key={index} message={msg} />
-                    ))}
-                    {isLoading && messages[messages.length-1]?.role === 'user' && (
-                        <Message message={{ role: 'bot', content: '...', isLoading: true }} />
-                    )}
-                    <div ref={messagesEndRef} />
+        <>
+            <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+            <div className="flex-grow flex flex-col bg-[#161B22]">
+                <div className="flex-grow p-6 md:p-10 overflow-y-auto">
+                    <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+                        {messages.length === 0 && !isLoading && (
+                            <Message message={{
+                                role: 'bot',
+                                content: user
+                                    ? `Hello, ${user.name}! Ask me anything about the Sigma Web Development course.`
+                                    : 'Hello! Please log in to save your chat history. You can ask one question before logging in.'
+                            }} />
+                        )}
+                        {messages.map((msg, index) => <Message key={index} message={msg} />)}
+                        {isLoading && messages[messages.length - 1]?.role === 'user' && (
+                            <Message message={{ role: 'bot', content: '...', isLoading: true }} />
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                </div>
+                <div className="p-4 md:p-8 border-t rounded-t-4xl border-[#8B949E]/20 bg-[#0D1117]">
+                    <form onSubmit={handleSend} className="flex items-center p-1.5 border border-[#8B949E]/30 rounded-full px-8 bg-[#010409] max-w-4xl mx-auto">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Ask a question about the course..."
+                            className="flex-grow bg-transparent rounded-2xl p-4.5 text-base outline-none disabled:opacity-50"
+                            disabled={isLoading}
+                        />
+                        <button
+                            type="submit"
+                            disabled={isLoading || !input.trim()}
+                            className="bg-[#30e958] text-[#0D1117] border-none rounded-md p-3 disabled:bg-[#30C4E9]/20 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <FiSend size={20} />
+                        </button>
+                    </form>
                 </div>
             </div>
-            <div className="p-10 border-t border-gray-200">
-                <form onSubmit={handleSend} className="flex p-1.5 border border-gray-300 rounded-lg">
-                    <input
-                        type="text"
-                        id="chat-input"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask a question about the course..."
-                        autoComplete="off"
-                        required
-                        disabled={isInputDisabled}
-                        className="flex-grow border-none p-2.5 text-base outline-none disabled:bg-transparent"
-                    />
-                    <button
-                        type="submit"
-                        disabled={isInputDisabled}
-                        className="bg-[#5a4fcf] text-white border-none rounded-md px-5 py-2.5 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    >
-                        Send
-                    </button>
-                </form>
-            </div>
-        </div>
+        </>
     );
 }
