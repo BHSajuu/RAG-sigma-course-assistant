@@ -8,7 +8,8 @@ fix_filenames.py
 
 inspect_db.py
 
-\backend\data\conversations.db
+backend/data/conversations.db
+backend/data/chroma_db/
 
 .vscode/
 __pycache__/
