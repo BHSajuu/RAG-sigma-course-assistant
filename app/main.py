@@ -1,26 +1,42 @@
 import os
+import json
 import requests
 import chromadb
 import google.generativeai as genai
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+from authlib.integrations.starlette_client import OAuth
+from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy.orm import Session
+from . import database
 
 
 load_dotenv()
+database.init_db() 
 
 # Configuration
 CHROMA_DB_DIR = "data/chroma_db"
 COLLECTION_NAME = "sigma_web_dev_course"
 OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
 
 
 app = FastAPI()
-
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -28,6 +44,13 @@ templates = Jinja2Templates(directory="app/templates")
 
 collection = None
 gemini_model = None
+
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.on_event("startup")
 def startup_event():
@@ -70,11 +93,64 @@ def create_embedding(text):
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    user = request.session.get('user')
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+
+@app.get('/login')
+async def login(request: Request):
+    redirect_uri = request.url_for('auth')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get('/auth')
+async def auth(request: Request, db: Session = Depends(get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    user_info = token.get('userinfo')
+    request.session['user'] = dict(user_info)
+
+    # Check if user exists, if not, create them
+    user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+    if not user:
+        new_user = database.User(email=user_info['email'], name=user_info['name'], picture=user_info['picture'])
+        db.add(new_user)
+        db.commit()
+
+    return RedirectResponse(url='/')
+
+@app.get('/logout')
+async def logout(request: Request):
+    request.session.pop('user', None)
+    return RedirectResponse(url='/')
+
+# --- ROUTE: Conversation History ---
+@app.get("/conversations")
+async def get_conversations(request: Request, db: Session = Depends(get_db)):
+    user_info = request.session.get('user')
+    if not user_info:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+    
+    user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+    conversations = db.query(database.Conversation).filter(database.Conversation.user_id == user.id).order_by(database.Conversation.created_at.desc()).all()
+    return [{"id": c.id, "title": c.title} for c in conversations]
+
+@app.get("/conversations/{conversation_id}")
+async def get_conversation_messages(conversation_id: int, request: Request, db: Session = Depends(get_db)):
+    user_info = request.session.get('user')
+    if not user_info:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+    
+    messages = db.query(database.Message).filter(database.Message.conversation_id == conversation_id).order_by(database.Message.id).all()
+    return [{"role": m.role, "content": m.content, "sources": json.loads(m.sources) if m.sources else []} for m in messages]
+
 
 
 @app.post("/ask")
-async def ask_question(request: Request):
+async def ask_question(request: Request, db: Session = Depends(get_db)):
+    
+    user_info = request.session.get('user')
+    if not user_info:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+
+
     if collection is None or gemini_model is None:
         return JSONResponse(status_code=503, content={"error": "Server is not ready. Please check logs."})
 
@@ -83,6 +159,24 @@ async def ask_question(request: Request):
         query = data.get("query")
         if not query:
             return JSONResponse(status_code=400, content={"error": "Query not provided"})
+        
+        conversation_id = data.get("conversation_id")
+
+        user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+
+        # Save user message
+        if not conversation_id:
+            # Create a new conversation
+            title = query[:50] + "..." if len(query) > 50 else query
+            new_convo = database.Conversation(user_id=user.id, title=title)
+            db.add(new_convo)
+            db.commit()
+            db.refresh(new_convo)
+            conversation_id = new_convo.id
+    
+        user_message = database.Message(conversation_id=conversation_id, role="user", content=query)
+        db.add(user_message)
+        db.commit()
 
         print(f"Creating embedding for query: '{query}'")
         query_embedding = create_embedding(query)
@@ -145,10 +239,15 @@ async def ask_question(request: Request):
         response = gemini_model.generate_content(prompt)
         answer = response.text
         
+        bot_message = database.Message(conversation_id=conversation_id, role="bot", content=answer, sources=json.dumps(sources_list))
+        db.add(bot_message)
+        db.commit()
+
         print("Gemini response received.")
         return {
             "answer": answer.strip(),
-            "source": sources_list
+            "source": sources_list,
+            "conversation_id": conversation_id
         } 
 
     except Exception as e:

@@ -10,5 +10,5 @@ inspect_db.py
 
 
 
-venv/
+.vscode/
 __pycache__/

@@ -5,6 +5,11 @@ python-dotenv
 jinja2
 google-generativeai
 
+# Add these for authentication and database
+Authlib
+SQLAlchemy
+itsdangerous
+
 # For data processing and AI
 requests
 google-cloud-speech

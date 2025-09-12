@@ -3,31 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sigma Web Dev Course Assistant</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Sigma Course Assistant</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body class="dark-theme"> <div id="chat-container">
-        <div id="chat-header">
-            <h2>Sigma Web Dev Course AI Assistant</h2>
-            <div id="theme-toggle">
-                <div class="toggle-icon"></div>
+<body>
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button id="new-chat-btn"><strong>+</strong> New Chat</button>
+            </div>
+            <div class="sidebar-content" id="conversation-list">
+                </div>
+            <div class="sidebar-footer">
+                {% if user %}
+                <div class="user-profile">
+                    <img src="{{ user.picture }}" alt="User profile picture">
+                    <span>{{ user.name }}</span>
+                </div>
+                <a href="/logout" class="logout-btn">Logout</a>
+                {% else %}
+                <a href="/login" class="login-btn">Login with Google</a>
+                {% endif %}
             </div>
         </div>
-        <div id="chat-messages">
-            <div class="message bot-message">
-                <p>Hello! Ask me anything about the Sigma Web Development course.</p>
+
+        <div class="chat-area">
+            <div id="chat-messages">
+                <div class="message bot-message">
+                    <p>
+                        {% if user %}
+                        Hello, {{ user.name }}! Welcome back. Select a past conversation or start a new one.
+                        {% else %}
+                        Hello! Please log in to start a new conversation and save your history.
+                        {% endif %}
+                    </p>
+                </div>
             </div>
-        </div>
-        <div id="chat-input-container">
-            <form id="chat-form">
-                <input type="text" id="chat-input" placeholder="Ask a question..." autocomplete="off" required>
-                <button type="submit">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"></path></svg>
-                </button>
-            </form>
+            <div id="chat-input-container">
+                <form id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Ask a question about the course..." autocomplete="off" required {% if not user %}disabled{% endif %}>
+                    <button type="submit" {% if not user %}disabled{% endif %}>Send</button>
+                </form>
+            </div>
         </div>
     </div>
     <script src="/static/script.js"></script>
