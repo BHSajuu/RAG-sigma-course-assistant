@@ -11,5 +11,7 @@ inspect_db.py
 backend/data/conversations.db
 backend/data/chroma_db/
 
+sigma-assistant-key.pem
+
 .vscode/
 __pycache__/
