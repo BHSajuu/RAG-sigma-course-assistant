@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { FiPlus, FiTrash2, FiLogOut, FiLogIn, FiAlertTriangle } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiLogOut, FiLogIn, FiAlertTriangle, FiMessageSquare } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -142,7 +142,16 @@ export default function Sidebar({ onSelectConversation, activeConversationId, on
                     <FiPlus /> New Chat
                 </button>
                 <div className="flex-grow overflow-y-auto space-y-2 pr-2 pt-6 border-t border-[#283347]">
-                    {conversations.map((convo, index) => (
+                    {conversations.length === 0 ? (
+                      <div className="py-10 px-4 text-center text-[#9CA3AF]">
+                            <div className="flex flex-col items-center gap-2">
+                                <FiMessageSquare className="w-6 h-6 text-blue-600" />
+                                <div className="text-sm font-medium">No conversations available</div>
+                                <div className="text-xs mt-1">Start a new chat to create a conversation.</div>
+                            </div>
+                        </div>
+                    ) : (
+                      conversations.map((convo, index) => (
                         <motion.div
                             key={convo.id}
                             initial={{ opacity: 0, y: -10 }}
@@ -159,7 +168,8 @@ export default function Sidebar({ onSelectConversation, activeConversationId, on
                                 <FiTrash2 />
                             </button>
                         </motion.div>
-                    ))}
+                    ))
+                     )}
                 </div>
                 <div className="pt-4 border-t border-[#8B949E]/20">
                     {user ? (

@@ -124,7 +124,7 @@ export default function ChatArea({ conversationId, onNewConversationStarted, onN
                     
                 </div>
 
-                <div className="p-4 md:p-8 border-t rounded-t-4xl border-[#8B949E]/20 bg-[#0D1117]">
+                <div className="p-4 md:p-8 border-t rounded-t-3xl border-[#8B949E]/20 bg-[#0D1117]">
                     <form onSubmit={handleSend} className="flex items-center p-1.5 border border-[#8B949E]/30 rounded-full px-8 bg-[#010409] max-w-4xl mx-auto">
                         <input
                             type="text"

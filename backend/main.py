@@ -235,7 +235,7 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
             "what can you do": "I can help you find specific topics within the Sigma Web Development course videos. Just ask me a question about a topic, and I'll try to point you to the right video and timestamp. I can also answer general questions about myself.",
             "hello": "Hello there! How can I help you with the Sigma course today?",
             "hi": "Hi! How can I help you with the Sigma course today?",
-            "thank you": "You're welcome! Let me know if you have any other questions."
+            "thank you": "You're welcome! Let me know if you have any other questions.",
         }
 
         modified_query = normalize_text(query)
@@ -264,8 +264,57 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
                 "sources": [], 
                 "conversation_id": conversation_id
             }
+        
+        person_aliases = {
+            "who is harry",
+            "who is codewithharry",
+            "who is haris ali khan",
+            "who is haris",
+            "who is code with harry",
+         }
 
+        if modified_query in person_aliases:
+            profile_text = (
+                "Haris Ali Khan, known as CodeWithHarry, is an Indian software developer and educator who creates programming tutorials and courses. He runs the CodeWithHarry website and YouTube channel, and he is the instructor behind the Sigma Web Development course/playlist. If you want the course materials, check the Sigma playlist link in the sources below."
+            )
 
+            sources_list = [
+                {"title": "CodeWithHarry — Official site", "url": "https://www.codewithharry.com/"},
+                {"title": "Sigma Web Development Course — YouTube playlist", "url": "https://www.youtube.com/playlist?list=PLu0W_9lII9agq5TrH9XLIKQvv0iaF2X3w"},
+                {"title": "Sigma course repo / materials (GitHub)", "url": "https://github.com/CodeWithHarry/Sigma-Web-Dev-Course"},
+                {"title": "CodeWithHarry — Udemy / instructor page", "url": "https://www.udemy.com/user/harry-3642/"},
+                {"title": "CodeWithHarry — social / profile", "url": "https://x.com/codewithharry"}
+            ]
+
+            conversation_id = data.get("conversation_id")
+            user = db.query(database.User).filter(database.User.email == user_info['email']).first()
+
+            if not conversation_id:
+                title = query[:50] + "..." if len(query) > 50 else query
+                new_convo = database.Conversation(user_id=user.id, title=title)
+                db.add(new_convo)
+                db.commit()
+                db.refresh(new_convo)
+                conversation_id = new_convo.id
+
+            user_message = database.Message(conversation_id=conversation_id, role="user", content=query)
+            bot_message = database.Message(
+            conversation_id=conversation_id,
+            role="bot",
+            content=profile_text,
+            sources=json.dumps(sources_list)
+              )
+            db.add(user_message)
+            db.add(bot_message)
+            db.commit()
+
+            return {
+                "answer": profile_text,
+                "sources": sources_list,
+                "conversation_id": conversation_id
+            }
+
+        
         conversation_id = data.get("conversation_id")
 
         user = db.query(database.User).filter(database.User.email == user_info['email']).first()
@@ -346,23 +395,30 @@ async def ask_question(request: Request, db: Session = Depends(get_db)):
         response = gemini_model.generate_content(prompt)
         answer = response.text
         
-        bot_message = database.Message(conversation_id=conversation_id, role="bot", content=answer, sources=json.dumps(sources_list))
-        db.add(bot_message)
-        db.commit()
+        
 
         print("Gemini response received.")
-        if answer.strip() == "I'm sorry, but I don't have enough information from the course videos to answer that question.":
+        insufficient_msg = "I'm sorry, but I don't have enough information from the course videos to answer that question."
+        if answer.strip() == insufficient_msg:
+            bot_message = database.Message(conversation_id=conversation_id, role="bot", content=answer, sources=json.dumps([]))
+            db.add(bot_message)
+            db.commit()
             return {
             "answer": answer.strip(),
             "sources": [],
             "conversation_id": conversation_id
         } 
-
-        return {
-            "answer": answer.strip(),
-            "sources": sources_list,
-            "conversation_id": conversation_id
-        } 
+         
+        else:
+            bot_message = database.Message(conversation_id=conversation_id, role="bot", content=answer, sources=json.dumps(sources_list))
+            db.add(bot_message)
+            db.commit() 
+            
+            return {
+                "answer": answer.strip(),
+                "sources": sources_list,
+                "conversation_id": conversation_id
+            } 
 
     except Exception as e:
         print(f"An error occurred in /ask endpoint: {e}")

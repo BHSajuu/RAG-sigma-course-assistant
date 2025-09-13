@@ -20,7 +20,7 @@ export default function Message({ message }) {
                 : 'bg-[#010409] self-start rounded-bl-md'
             }`}
         >
-            <div className="whitespace-pre-wrap">
+            <div className="whitespace-pre-wrap text-justify">
                 {message.isLoading ? loadingDots : message.content}
             </div>
 
