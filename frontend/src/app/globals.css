@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#0D1117] text-[#C9D1D9] antialiased;
+  }
+}
+/* Custom Scrollbar for a modern look */
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #161B22;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #81817f;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #57D2F0;
+}
+
+button:hover{
+  cursor: pointer;
+}

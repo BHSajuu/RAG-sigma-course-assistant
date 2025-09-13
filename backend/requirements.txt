@@ -1,0 +1,22 @@
+# For the backend web server
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+python-multipart
+fastapi-cors
+
+# Add these for authentication and database
+Authlib
+SQLAlchemy
+itsdangerous
+
+# For data processing and AI
+requests
+google-cloud-speech
+google-cloud-storage
+google-cloud-translate
+yt-dlp
+chromadb
+pandas
+ffmpeg
