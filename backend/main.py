@@ -11,7 +11,6 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware  
 import database
-from sqlalchemy import delete
 import re
 
 
@@ -19,7 +18,7 @@ load_dotenv()
 database.init_db() 
 
 # Configuration
-CHROMA_DB_DIR = "data/chroma_db"
+CHROMA_DB_DIR = "/data/chroma_db"
 COLLECTION_NAME = "sigma_web_dev_course"
 OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")

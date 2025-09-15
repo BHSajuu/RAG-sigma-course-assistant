@@ -5,6 +5,7 @@ python-dotenv
 google-generativeai
 python-multipart
 fastapi-cors
+psycopg2-binary
 
 # Add these for authentication and database
 Authlib
